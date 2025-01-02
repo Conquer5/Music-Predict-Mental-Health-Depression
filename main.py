@@ -1,0 +1,127 @@
+import streamlit as st
+import joblib
+import pandas as pd
+from rf import RandomForest_manual  # Import custom classes
+
+# Page configuration
+st.set_page_config(page_title="Mental Health Prediction App", layout="wide")
+
+@st.cache_resource
+def load_label_encoders(file_path):
+    return joblib.load(file_path)
+
+@st.cache_resource
+def load_model(file_path):
+    return joblib.load(file_path)
+
+# Load model dan label encoders
+model_file = "random_forest_manual.joblib"
+label_encoders_file = "label_encoders.joblib"
+target_encoder = joblib.load("target_encoder.joblib")
+
+
+model = load_model(model_file)
+label_encoders = load_label_encoders(label_encoders_file)
+
+# Header
+st.title("Mental Health Prediction Based on Music Preferences")
+
+# Input form
+st.header("Questionnaire")
+with st.form("input_form"):
+    age = st.number_input("How old are you?", min_value=1, max_value=100, value=25)
+
+    primary_streaming = st.selectbox("Primary streaming platform:", 
+                                     label_encoders["Primary streaming service"].classes_)
+
+    hours_per_day = st.number_input("Hours per day listening to music:", min_value=0.0, max_value=24.0, value=2.0, step=0.5)
+
+    while_working = st.radio("Do you listen to music while working?", label_encoders["While working"].classes_)
+
+    instrumental = st.radio("Do you listen to instrumental music?", label_encoders["Instrumentalist"].classes_)
+
+    composer = st.radio("Do you prefer specific composers?", label_encoders["Composer"].classes_)
+
+    fav_genre = st.selectbox("Favorite genre:", label_encoders["Fav genre"].classes_)
+
+    exploratory = st.radio("Do you enjoy exploring new music genres?", label_encoders["Exploratory"].classes_)
+
+    foreign_language = st.radio("Do you listen to foreign language music?", label_encoders["Foreign languages"].classes_)
+
+    frequency_columns = [
+        "Frequency [Classical]", "Frequency [Country]", "Frequency [EDM]",
+        "Frequency [Folk]", "Frequency [Gospel]", "Frequency [Hip hop]",
+        "Frequency [Jazz]", "Frequency [K pop]", "Frequency [Latin]", "Frequency [Lofi]",
+        "Frequency [Metal]", "Frequency [Pop]", "Frequency [R&B]", "Frequency [Rap]",
+        "Frequency [Rock]", "Frequency [Video game music]"
+    ]
+
+    frequency_responses = {
+        col: st.selectbox(f"Frequency for {col.split('[')[1].replace(']', '')}:", 
+                          label_encoders[col].classes_)
+        for col in frequency_columns
+    }
+
+    anxiety = st.slider("Anxiety level (0-10):", 0, 10, 5)
+    insomnia = st.slider("Insomnia level (0-10):", 0, 10, 5)
+    ocd = st.slider("OCD level (0-10):", 0, 10, 5)
+
+    music_effect = st.radio("How does music affect your mental state?", label_encoders["Music effects"].classes_)
+
+    submitted = st.form_submit_button("Predict")
+
+if submitted:
+    # Build input DataFrame
+    data = {
+        "Age": age,
+        "Primary streaming service": primary_streaming,
+        "Hours per day": hours_per_day,
+        "While working": while_working,
+        "Instrumentalist": instrumental,
+        "Composer": composer,
+        "Fav genre": fav_genre,
+        "Exploratory": exploratory,
+        "Foreign languages": foreign_language,
+        "Anxiety": anxiety,
+        "Insomnia": insomnia,
+        "OCD": ocd,
+        "Music effects": music_effect,
+    }
+    data.update(frequency_responses)
+
+    input_df = pd.DataFrame([data])
+
+    # Encode categorical columns
+    for col in input_df.columns:
+        if col in label_encoders:  # Check if the column has a LabelEncoder
+            input_df[col] = label_encoders[col].transform(input_df[col])
+
+    # Ensure column order matches model expectation
+    expected_columns = [
+    "Age", "Primary streaming service", "Hours per day", "While working",
+    "Instrumentalist", "Composer", "Fav genre", "Exploratory", "Foreign languages",
+    "Frequency [Classical]", "Frequency [Country]", "Frequency [EDM]",
+    "Frequency [Folk]", "Frequency [Gospel]", "Frequency [Hip hop]",
+    "Frequency [Jazz]", "Frequency [K pop]", "Frequency [Latin]", "Frequency [Lofi]",
+    "Frequency [Metal]", "Frequency [Pop]", "Frequency [R&B]", "Frequency [Rap]",
+    "Frequency [Rock]", "Frequency [Video game music]",
+    "Anxiety", "Insomnia", "OCD", "Music effects"
+]
+
+    input_df = input_df[expected_columns]
+
+    st.write("Processed Input Data for Model:")
+    st.write(input_df)
+
+
+    # Prediksi menggunakan model
+    prediction = model.predict(input_df.to_numpy())
+
+    # Decode hasil prediksi
+    decoded_prediction = target_encoder.inverse_transform(prediction)
+
+    # Tampilkan hasil
+    st.subheader("Prediction Result:")
+    st.write(f"Predicted Mental Health Condition: {decoded_prediction[0]}")
+
+    
