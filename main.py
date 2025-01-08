@@ -74,9 +74,6 @@ if selected_page == "Prediction":
             for col in frequency_columns
         }
 
-        anxiety = st.slider("Anxiety level (0-10):", 0, 10, 5)
-        insomnia = st.slider("Insomnia level (0-10):", 0, 10, 5)
-        ocd = st.slider("OCD level (0-10):", 0, 10, 5)
 
         music_effect = st.radio("How does music affect your mental state?", label_encoders["Music effects"].classes_)
 
@@ -94,9 +91,6 @@ if selected_page == "Prediction":
             "Fav genre": fav_genre,
             "Exploratory": exploratory,
             "Foreign languages": foreign_language,
-            "Anxiety": anxiety,
-            "Insomnia": insomnia,
-            "OCD": ocd,
             "Music effects": music_effect,
         }
         data.update(frequency_responses)
@@ -117,7 +111,7 @@ if selected_page == "Prediction":
             "Frequency [Jazz]", "Frequency [K pop]", "Frequency [Latin]", "Frequency [Lofi]",
             "Frequency [Metal]", "Frequency [Pop]", "Frequency [R&B]", "Frequency [Rap]",
             "Frequency [Rock]", "Frequency [Video game music]",
-            "Anxiety", "Insomnia", "OCD", "Music effects"
+            "Music effects"
         ]
 
         input_df = input_df[expected_columns]
